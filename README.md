@@ -7,8 +7,11 @@ This repository contains a complete implementation of a tactile fingerprint reco
 ---
 
 ## Functionality
+#### Placing the correct finger
 ![Placing the correct finger](assets/correct_finger.gif)
+#### Placing the incorrect finger
 ![Placing the incorrect finger](assets/incorrect_finger.gif)
+#### Not placing any finger
 ![Not placing any finger](assets/no_finger.gif)
 ---
 
