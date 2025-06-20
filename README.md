@@ -1,103 +1,167 @@
-# CKKS Biometric Model
+# Tactile Fingerprint Recognition System
 
-**Privacy-Preserving Fingerprint Recognition Using Homomorphic Encryption**
+**High-Resolution Fingerprint Recognition Using Photometric Stereo and DIGIT Sensor**
 
-This repository contains the core implementation of a secure fingerprint recognition pipeline that leverages **CKKS homomorphic encryption** and **neural networks** to perform inference on encrypted fingerprint data. The project is designed to integrate with high-resolution tactile inputs from Meta’s DIGIT sensor.
+This repository contains a complete implementation of a tactile fingerprint recognition system that uses **photometric stereo** techniques with Meta's **DIGIT sensor** to capture and analyze high-resolution fingerprint surface data for biometric authentication.
 
+---
+
+## Functionality
+![Placing the correct finger](assets/yes.mp4)
+![Placing the incorrect finger](assets/incorrect.mp4)
+![Not placing any finger](assets/no_finger.mp4)
 ---
 
 ## Overview
 
-This project explores the use of encrypted neural network inference for biometric authentication, ensuring data privacy during the entire inference process.
+This project implements a sophisticated fingerprint recognition pipeline that leverages tactile sensing technology to capture detailed surface topology of fingerprints. The system uses photometric stereo reconstruction to generate surface normals, albedo maps, and height maps from tactile sensor data, enabling robust biometric authentication.
 
 Key components:
-- **CKKS-based encryption** using [TenSEAL](https://github.com/OpenMined/TenSEAL)
-- **CNN model** trained on plaintext, tested on encrypted data
-- **Integration-ready** with external tactile sensing libraries such as [`digit-sensor-lib`](https://github.com/your-org/digit-sensor-lib)
-- Performance metrics and reproducible experiments
+- **Photometric stereo reconstruction** for surface analysis
+- **DIGIT sensor integration** for high-resolution tactile capture
+- **PCA-based feature extraction** for dimensionality reduction
+- **Earth Mover's Distance (EMD)** for robust fingerprint matching
+- **Real-time capture and processing** with quality assessment
+- **Surface roughness analysis** for additional biometric features
 
 ---
 
 ## Repository Structure
 
-\```
+```
 ckks-biometric-model/
-├── biometric_model/           # Core model, encryption utilities, inference logic
-│   ├── model.py
-│   ├── ckks_context.py
-│   ├── encrypt_utils.py
-│   └── inference.py
-├── experiments/               # Scripts for testing with MNIST and DIGIT data
-├── data/                      # Storage for encrypted and processed data
-├── notebooks/                 # Experimentation and visualization
-├── configs/                   # Configuration files for models and encryption
-├── tests/                     # Unit and integration tests
-├── requirements.txt
+├── photometric_stereo.py      # Core photometric stereo processing pipeline
+├── secure_enroll_and_verify.py # Fingerprint enrollment and verification system
+├── pca_model.joblib          # Pre-trained PCA model for feature extraction
+├── data/                     # Storage for captured and processed data
 └── README.md
-\```
+```
 
 ---
 
 ## Requirements
 
 - Python 3.8+
-- TenSEAL
-- PyTorch
+- OpenCV (cv2)
 - NumPy
-- (Optional) digit-sensor-lib
+- SciPy
+- scikit-learn (joblib)
+- Matplotlib
+- Meta DIGIT sensor
+- `digit` library for sensor communication
 
 Install dependencies:
 
-\```bash
-pip install -r requirements.txt
-\```
+```bash
+pip install opencv-python numpy scipy scikit-learn matplotlib
+# Install DIGIT sensor library according to Meta's documentation
+```
 
 ---
 
-## Model Pipeline
+## System Pipeline
 
-1. **Plaintext training**: Train a CNN on fingerprint data (e.g., MNIST or DIGIT preprocessed).
-2. **Encryption**: Encrypt inputs and model weights using CKKS.
-3. **Inference**: Run homomorphic inference on encrypted data.
-4. **Decryption**: Output decrypted predictions.
+1. **Reference Capture**: Capture baseline images with no finger contact
+2. **Measurement Capture**: Capture images with finger placed on sensor
+3. **Photometric Processing**: Calculate surface normals and albedo using photometric stereo
+4. **Feature Extraction**: Apply PCA to reduce dimensionality of albedo maps
+5. **Enrollment**: Build user template from multiple high-quality captures
+6. **Verification**: Compare probe fingerprint against enrolled template using EMD
 
 ---
 
 ## Quick Start
 
-\```python
-from biometric_model import ckks_context, encrypt_utils, inference
-from digit_sensor import DigitSensor
+### Basic Photometric Stereo Processing
 
-# Initialize CKKS context
-context = ckks_context.create_context()
+```python
+from photometric_stereo import PhotometricStereo
 
-# Load and vectorize fingerprint
-sensor = DigitSensor()
-image = sensor.capture()
-vector = sensor.vectorize(image)
+# Initialize the photometric stereo system
+ps = PhotometricStereo(camera_index=1, display=True)
 
-# Encrypt and infer
-enc_input = encrypt_utils.encrypt_input(vector, context)
-prediction = inference.run_encrypted_inference(enc_input, context)
-\```
+# Run interactive processing
+ps.run()
+```
+
+### Fingerprint Enrollment and Verification
+
+```python
+from secure_enroll_and_verify import FingerprintVerifier
+
+# Initialize the verification system
+verifier = FingerprintVerifier()
+
+# Run enrollment and verification
+verifier.run()
+```
 
 ---
 
-## Experiments
+## Usage Instructions
 
-Run MNIST encrypted inference:
-\```bash
-python experiments/test_mnist_ckks.py
-\```
+### Photometric Stereo Interface
 
-Run DIGIT-based fingerprint test:
-\```bash
-python experiments/test_digit_ckks.py
-\```
+The photometric stereo system provides an interactive interface with the following controls:
+
+- **SPACE**: Run full baseline pipeline (capture, process, calculate normals/albedo, height maps)
+- **r/R**: Capture reference (1s/5s duration)
+- **m/M**: Capture measurement (1s/5s duration)
+- **p**: Process captures to generate difference image
+- **n**: Calculate surface normals and albedo (standard)
+- **h**: Calculate L2 height map from current normals
+- **E**: Calculate L2 height map from bilaterally filtered normals
+- **1/2/3**: Calculate roughness statistics from different maps
+- **S**: Save all generated maps and statistics
+- **q**: Quit
+
+### Fingerprint Verification System
+
+The verification system automatically:
+
+1. **Enrollment Phase**: Captures 5 high-quality fingerprint samples
+2. **Template Generation**: Creates statistical model of user's fingerprint features
+3. **Verification Phase**: Compares new fingerprint captures against enrolled template
+4. **Quality Control**: Rejects blurry images or captures without finger presence
+
+---
+
+## Technical Details
+
+### Photometric Stereo Algorithm
+
+The system uses a three-light photometric stereo setup with the DIGIT sensor's built-in LED configuration:
+
+- **Light directions**: Fixed at 0°, 120°, and 240° around the sensor
+- **Surface normal calculation**: Solves the photometric stereo equation using least squares
+- **Albedo extraction**: Computes surface reflectance properties
+- **Height reconstruction**: Integrates surface gradients using Fourier methods
+
+### Feature Extraction
+
+- **PCA dimensionality reduction**: Reduces 8100-dimensional albedo maps to manageable feature vectors
+- **CLAHE enhancement**: Improves contrast of albedo maps for better feature extraction
+- **Quality assessment**: Uses Laplacian variance for sharpness measurement
+
+### Matching Algorithm
+
+- **Earth Mover's Distance**: Robust distance metric for comparing feature distributions
+- **Dynamic thresholding**: Adapts match threshold based on enrollment sample variance
+- **Statistical validation**: Uses mean + 2σ approach for reliable authentication
+
+---
+
+## Hardware Requirements
+
+- **DIGIT Sensor**: Meta's high-resolution tactile sensor
+- **USB Connection**: For sensor communication
+- **Adequate Lighting**: Controlled environment for consistent captures
+- **Windows/Linux**: Compatible with both operating systems
 
 ---
 
 ## Acknowledgments
 
-- Meta AI - DIGIT tactile sensor
+- **Meta AI**: DIGIT tactile sensor technology
+- **Photometric Stereo**: Classical computer vision techniques
+- **scikit-learn**: PCA implementation and model persistence
